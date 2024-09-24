@@ -1,0 +1,45 @@
+name: Release workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version"
+        required: true
+      bundle_channels:
+        description: "Bundle channels"
+        required: true
+        default: "candidates"
+      is_draft_release:
+        description: "Draft release"
+        type: boolean
+        required: false
+        default: true
+      is_pre_release:
+        description: "Pre-release"
+        type: boolean
+        required: false
+        default: false
+
+run-name: Release ${{ inputs.release_version }}
+
+env:
+  GIT_USER: ${{ secrets.GIT_USER }}
+  GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+  VERSION: ${{ inputs.release_version }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create GitHub release
+      run: |
+        make create-gh-release \
+          -e GH_PRE_RELEASE=$GH_PRE_RELEASE \
+          -e GH_RELEASE_DRAFT=$GH_RELEASE_DRAFT
+      env:
+        GH_PRE_RELEASE: ${{ github.event.inputs.is_pre_release == 'true' }}
+        GH_RELEASE_DRAFT: ${{ github.event.inputs.is_draft_release == 'true' }}
