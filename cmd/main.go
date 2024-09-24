@@ -1,0 +1,191 @@
+// Copyright Istio Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"flag"
+	"fmt"
+	"net/http"
+	"os"
+
+	"github.com/istio-ecosystem/sail-operator/controllers/istio"
+	"github.com/istio-ecosystem/sail-operator/controllers/istiocni"
+	"github.com/istio-ecosystem/sail-operator/controllers/istiorevision"
+	"github.com/istio-ecosystem/sail-operator/controllers/remoteistio"
+	"github.com/istio-ecosystem/sail-operator/controllers/webhook"
+	"github.com/istio-ecosystem/sail-operator/pkg/config"
+	"github.com/istio-ecosystem/sail-operator/pkg/enqueuelogger"
+	"github.com/istio-ecosystem/sail-operator/pkg/helm"
+	"github.com/istio-ecosystem/sail-operator/pkg/scheme"
+	"github.com/istio-ecosystem/sail-operator/pkg/version"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+)
+
+var setupLog = ctrl.Log.WithName("setup")
+
+func main() {
+	var metricsAddr string
+	var probeAddr string
+	var configFile string
+	var resourceDirectory string
+	var defaultProfile string
+	var logAPIRequests bool
+	var printVersion bool
+	var leaderElectionEnabled bool
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&configFile, "config-file", "/etc/sail-operator/config.properties", "Location of the config file, propagated by k8s downward APIs")
+	flag.StringVar(&resourceDirectory, "resource-directory", "/var/lib/sail-operator/resources", "Where to find resources (e.g. charts)")
+	flag.StringVar(&defaultProfile, "default-profile", "default", "The name of the profile to apply to Istio and IstioRevision resources by default")
+	flag.BoolVar(&logAPIRequests, "log-api-requests", false, "Whether to log each request sent to the Kubernetes API server")
+	flag.BoolVar(&printVersion, "version", printVersion, "Prints version information and exits")
+	flag.BoolVar(&leaderElectionEnabled, "leader-elect", true,
+		"Enable leader election for this operator. Enabling this will ensure there is only one active controller manager.")
+
+	flag.BoolVar(&enqueuelogger.LogEnqueueEvents, "log-enqueue-events", false, "Whether to log events that cause an object to be enqueued for reconciliation")
+
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
+	flag.Parse()
+
+	if printVersion {
+		fmt.Println(version.Info)
+		os.Exit(0)
+	}
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	operatorNamespace := os.Getenv("POD_NAMESPACE")
+	if operatorNamespace == "" {
+		contents, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		operatorNamespace = string(contents)
+		if err != nil || operatorNamespace == "" {
+			setupLog.Error(err, "can't determine namespace this operator is running in; if running outside of a pod, please set the POD_NAMESPACE environment variable")
+			os.Exit(1)
+		}
+	}
+
+	setupLog.Info(version.Info.String())
+	setupLog.Info("reading config")
+	err := config.Read(configFile)
+	if err != nil {
+		setupLog.Error(err, "unable to read config file at "+configFile)
+		os.Exit(1)
+	}
+	setupLog.Info("config loaded", "config", config.Config)
+
+	cfg := ctrl.GetConfigOrDie()
+	if logAPIRequests {
+		cfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+			return requestLogger{rt: rt}
+		})
+	}
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:                  scheme.Scheme,
+		Metrics:                 metricsserver.Options{BindAddress: metricsAddr},
+		HealthProbeBindAddress:  probeAddr,
+		LeaderElection:          leaderElectionEnabled,
+		LeaderElectionID:        "sail-operator-lock",
+		LeaderElectionNamespace: operatorNamespace,
+		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
+		// when the Manager ends. This requires the binary to immediately end when the
+		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
+		// speeds up voluntary leader transitions as the new leader don't have to wait
+		// LeaseDuration time first.
+		//
+		// In the default scaffold provided, the program ends immediately after
+		// the manager stops, so would be fine to enable this option. However,
+		// if you are doing or is intended to do any operation such as perform cleanups
+		// after the manager stops then its usage might be unsafe.
+		// LeaderElectionReleaseOnCancel: true,
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	chartManager := helm.NewChartManager(mgr.GetConfig(), os.Getenv("HELM_DRIVER"))
+
+	err = istio.NewReconciler(mgr.GetClient(), mgr.GetScheme(), resourceDirectory, defaultProfile).
+		SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Istio")
+		os.Exit(1)
+	}
+
+	err = remoteistio.NewReconciler(mgr.GetClient(), mgr.GetScheme(), resourceDirectory, defaultProfile).
+		SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "RemoteIstio")
+		os.Exit(1)
+	}
+
+	err = istiorevision.NewReconciler(mgr.GetClient(), mgr.GetScheme(), resourceDirectory, chartManager).
+		SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "IstioRevision")
+		os.Exit(1)
+	}
+
+	err = istiocni.NewReconciler(mgr.GetClient(), mgr.GetScheme(), resourceDirectory, chartManager, defaultProfile).
+		SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "IstioCNI")
+		os.Exit(1)
+	}
+
+	err = webhook.NewReconciler(mgr.GetClient(), mgr.GetScheme()).
+		SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
+		os.Exit(1)
+	}
+	// +kubebuilder:scaffold:builder
+
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up health check")
+		os.Exit(1)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+type requestLogger struct {
+	rt http.RoundTripper
+}
+
+func (rl requestLogger) RoundTrip(req *http.Request) (*http.Response, error) {
+	log := logf.FromContext(req.Context())
+	log.Info("Performing API request", "method", req.Method, "URL", req.URL)
+	return rl.rt.RoundTrip(req)
+}
+
+var _ http.RoundTripper = requestLogger{}
