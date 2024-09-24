@@ -9,6 +9,7 @@ metadata:
     app.kubernetes.io/name: deployment
     app.kubernetes.io/part-of: {{ .Values.name }}
     control-plane: {{ .Values.deployment.name }}
+    bla: hru
   name: {{ .Values.deployment.name }}
   namespace: {{ .Release.Namespace }}
 spec:
