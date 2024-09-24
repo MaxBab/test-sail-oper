@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   sail-operator:
   - apiVersion: v2
+    appVersion: 0.1.1
+    created: "2024-09-24T16:01:00.442957987+03:00"
+    description: A Helm chart for Kubernetes
+    digest: c78f06ad2c38739111c4f3e000eec417cf1eaf797cff00845a86ec656119d849
+    name: sail-operator
+    type: application
+    urls:
+    - https://github.com/MaxBab/test-sail-oper/releases/download/0.1.1/sail-operator-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
     appVersion: 0.1.0
     created: "2024-09-24T15:40:03.240037639+03:00"
     description: A Helm chart for Kubernetes
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/MaxBab/test-sail-oper/releases/download/0.1.0/sail-operator-0.1.0.tgz
     version: 0.1.0
-generated: "2024-09-24T15:40:03.219761384+03:00"
+generated: "2024-09-24T16:01:00.432209435+03:00"
