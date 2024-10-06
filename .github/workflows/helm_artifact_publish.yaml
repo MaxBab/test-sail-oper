@@ -2,7 +2,7 @@ name: Publish Helm artifact
 
 on:
   release:
-    types: [released]
+    types: [released, published]
 
 env:
   GIT_USER: ${{ secrets.GIT_USER }}
