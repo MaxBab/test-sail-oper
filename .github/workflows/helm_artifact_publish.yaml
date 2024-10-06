@@ -1,0 +1,17 @@
+name: Publish Helm artifact
+
+on:
+  release:
+    types: [published]
+
+env:
+  GIT_USER: ${{ secrets.GIT_USER }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          echo "test helm artifacts run"
