@@ -586,7 +586,9 @@ bundle-publish-nightly: bundle-nightly bundle-publish
 
 .PHONY: helm-artifacts-publish
 helm-artifacts-publish: helm ## Publish Helm artifacts to be available for "Helm repo add"
-	@export OPERATOR_VERSION=${OPERATOR_VERSION}; \
+	@export GIT_USER=$(GITHUB_USER); \
+	export GITHUB_TOKEN=$(GITHUB_TOKEN); \
+	export OPERATOR_VERSION=${OPERATOR_VERSION}; \
 	./hack/helm-artifacts.sh
 
 .PHONY: opm $(OPM)

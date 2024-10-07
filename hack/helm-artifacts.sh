@@ -50,15 +50,15 @@ function update_repo_index() {
 function prepare_repo() {
     echo "Prepare repository"
 
-    #if [ -z "${GITHUB_TOKEN}" ]; then
-    #  die "Please provide GITHUB_TOKEN"
-    #fi
+    if [ -z "${GITHUB_TOKEN}" ]; then
+      die "Please provide GITHUB_TOKEN"
+    fi
     if ! command -v helm &> /dev/null; then
       die "Helm command is missing"
     fi
 
     TMP_DIR=$(mktemp -d)
-    #trap 'rm -rf "${TMP_DIR}"' EXIT
+    trap 'rm -rf "${TMP_DIR}"' EXIT
 
     git clone --single-branch --depth=1 --branch "${HUB_HELM_BRANCH}" "${HUB_REPO_URL}" "${TMP_DIR}/${UPSTREAM_OPERATOR_NAME}"
     cd "${TMP_DIR}/${UPSTREAM_OPERATOR_NAME}"
