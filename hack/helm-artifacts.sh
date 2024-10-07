@@ -27,9 +27,9 @@ GIT_CONFIG_USER_EMAIL="${GIT_CONFIG_USER_EMAIL:-}"
 
 UPSTREAM_OPERATOR_NAME="${UPSTREAM_OPERATOR_NAME:-"test-sail-oper"}"
 OWNER="${OWNER:-"maxbab"}"
-HUB_REPO_URL="${HUB_REPO_URL:-https://github.com/${OWNER}/${UPSTREAM_OPERATOR_NAME}}"
+HUB_REPO_URL="${HUB_REPO_URL:-github.com/${OWNER}/${UPSTREAM_OPERATOR_NAME}}"
 HUB_HELM_BRANCH="${HUB_HIVE_BRANCH:-"gh-pages"}"
-HUB_HELM_ARTIFACT_URL="${HUB_REPO_URL}"/releases/download/"${OPERATOR_VERSION}"/
+HUB_HELM_ARTIFACT_URL="https://${HUB_REPO_URL}"/releases/download/"${OPERATOR_VERSION}"/
 
 : "${OPERATOR_VERSION:?"Missing OPERATOR_VERSION variable"}"
 
@@ -60,7 +60,7 @@ function prepare_repo() {
     TMP_DIR=$(mktemp -d)
     trap 'rm -rf "${TMP_DIR}"' EXIT
 
-    git clone --single-branch --depth=1 --branch "${HUB_HELM_BRANCH}" "${HUB_REPO_URL}" "${TMP_DIR}/${UPSTREAM_OPERATOR_NAME}"
+    git clone --single-branch --depth=1 --branch "${HUB_HELM_BRANCH}" "https://${GIT_USER}:${GITHUB_TOKEN}@${HUB_REPO_URL}" "${TMP_DIR}/${UPSTREAM_OPERATOR_NAME}"
     cd "${TMP_DIR}/${UPSTREAM_OPERATOR_NAME}"
 
     if ! git config user.name; then
