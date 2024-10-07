@@ -88,6 +88,8 @@ function update_helm_repo_index() {
     git commit -m "Add new sail-operator chart release - ${OPERATOR_VERSION}"
 
     echo "pushing commit"
+    git config --list
+    git remote -v
     git push origin "$helm_branch"
 
     PAYLOAD="${TMP_DIR}/PAYLOAD"
