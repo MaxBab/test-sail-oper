@@ -86,9 +86,13 @@ function update_helm_repo_index() {
     helm repo index --merge index.yaml . --url "${HUB_HELM_ARTIFACT_URL}"
     git add index.yaml
     git commit -m "Add new sail-operator chart release - ${OPERATOR_VERSION}"
+
+    echo "pushing commit"
     git push origin "$helm_branch"
 
     PAYLOAD="${TMP_DIR}/PAYLOAD"
+
+    echo "creating payload"
 
     jq -c -n \
       --arg msg "Add new sail-operator chart release - ${OPERATOR_VERSION}" \
@@ -96,6 +100,9 @@ function update_helm_repo_index() {
       --arg base "${HUB_HELM_BRANCH}" \
       --arg title "Helm artifact ${OPERATOR_VERSION}" \
       '{head: $head, base: $base, title: $title, body: $msg }' > "${PAYLOAD}"
+
+    echo "show payload"
+    cat "${PAYLOAD}"
 
     curl --fail-with-body -X POST \
       -H "Authorization: token ${GITHUB_TOKEN}" \
