@@ -2,6 +2,10 @@ name: Publish Helm artifact
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version"
+        required: true
   workflow_run:
     workflows: ['Release workflow']
     types: [completed]
@@ -9,6 +13,7 @@ on:
 env:
   GIT_USER: ${{ secrets.GIT_USER }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  VERSION: ${{ inputs.release_version }}
 
 jobs:
   release:
@@ -16,6 +21,5 @@ jobs:
 
     steps:
       - run: |
-          echo "test helm artifacts run"
-
-          echo ${{ github.event.workflow_run }}
+          make helm-artifacts-publish \
+            -e OPERATOR_VERSION=$VERSION
