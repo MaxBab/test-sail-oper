@@ -585,7 +585,7 @@ bundle-publish-nightly: TAG=$(MINOR_VERSION)-nightly-$(TODAY)
 bundle-publish-nightly: bundle-nightly bundle-publish
 
 .PHONY: helm-artifacts-publish
-helm-artifacts-publish: ## Publish Helm artifacts to be available for "Helm repo add"
+helm-artifacts-publish: helm ## Publish Helm artifacts to be available for "Helm repo add"
 	@export OPERATOR_VERSION=${OPERATOR_VERSION}; \
 	./hack/helm-artifacts.sh
 
