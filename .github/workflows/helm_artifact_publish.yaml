@@ -7,8 +7,8 @@ on:
         description: "Release version"
         required: true
   release:
-    types: [published]
-    branches: [main]
+    types:
+      - published
 
 run-name: Publish Helm artifact ${{ inputs.release_version }}
 
