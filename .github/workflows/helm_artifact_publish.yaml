@@ -29,6 +29,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: operator-version
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GIT_TOKEN }}
 
       - run: ls
       - run: cat operator-version
