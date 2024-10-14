@@ -25,6 +25,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download Operator version artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: operator-version
+
+      - run: ls
+      - run: cat operator-version
+
       - name: Publish Helm artifact to "gh-pages" branch
         run: |
           make helm-artifacts-publish \

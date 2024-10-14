@@ -43,3 +43,12 @@ jobs:
       env:
         GH_PRE_RELEASE: ${{ github.event.inputs.is_pre_release == 'true' }}
         GH_RELEASE_DRAFT: ${{ github.event.inputs.is_draft_release == 'true' }}
+
+    - name: Create a file with Operator Version
+      run: echo "${{ VERSION }}" > operator-version
+
+    - name: Upload version artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: operator-version
+        path: operator-version
