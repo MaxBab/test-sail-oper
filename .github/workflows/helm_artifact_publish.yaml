@@ -40,9 +40,9 @@ jobs:
           make helm-artifacts-publish \
             -e GIT_CONFIG_USER_NAME="$GIT_CONFIG_USER_NAME" \
             -e GIT_CONFIG_USER_EMAIL="$GIT_CONFIG_USER_EMAIL" \
-            -e OPERATOR_VERSION=$VERSION
+            -e OPERATOR_VERSION=$OPERATOR_VER
         env:
           GIT_CONFIG_USER_NAME: "${{ github.actor }}"
           GIT_CONFIG_USER_EMAIL: "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-          OPERATOR_VER: "${{ VERSION || VER }}"
+          OPERATOR_VER: "${{ $VERSION || $VER }}"
 
