@@ -25,7 +25,7 @@ run-name: Release ${{ inputs.release_version }}
 
 env:
   GIT_USER: ${{ secrets.GIT_USER }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
   VERSION: ${{ inputs.release_version }}
 
 jobs:
