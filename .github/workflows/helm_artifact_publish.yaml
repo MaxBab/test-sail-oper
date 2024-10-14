@@ -32,8 +32,8 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GIT_TOKEN }}
 
-      - run: ls
-      - run: cat operator-version
+      - name: Set env var
+        run: echo "VER=$(cat operator-version)" >> $GITHUB_ENV
 
       - name: Publish Helm artifact to "gh-pages" branch
         run: |
@@ -44,4 +44,5 @@ jobs:
         env:
           GIT_CONFIG_USER_NAME: "${{ github.actor }}"
           GIT_CONFIG_USER_EMAIL: "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          OPERATOR_VER: "${{ VERSION || VER }}"
 
