@@ -29,16 +29,30 @@ jobs:
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         uses: actions/download-artifact@v4
         with:
-          name: operator-version
+          name: context.json
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GIT_TOKEN }}
 
-      - name: Set VERSION env var if empty
-        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+      - name: Return parsed JSON
+        uses: actions/github-script@v6
+        id: return-parsed-json
+        with:
+          script: |
+            let fs = require('fs');
+            let data = fs.readFileSync('./context.json');
+            return JSON.parse(data);
+
+      - name: test
         run: |
-          if [ -z $VERSION ]; then
-            echo "VERSION=$(cat operator-version)" >> $GITHUB_ENV
-          fi
+          echo ${{fromJSON(steps.return-parsed-json.outputs.result).VERSION}}
+          echo ${{fromJSON(steps.return-parsed-json.outputs.result).IS_DRAFT_RELEASE}}
+
+      #- name: Set VERSION env var if empty
+      #  if: ${{ github.event.workflow_run.conclusion == 'success' }}
+      #  run: |
+      #    if [ -z $VERSION ]; then
+      #      echo "VERSION=$(cat operator-version)" >> $GITHUB_ENV
+      #    fi
 
       - name: Publish Helm artifact to "gh-pages" branch
         run: |
