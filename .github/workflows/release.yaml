@@ -44,10 +44,11 @@ jobs:
         GH_PRE_RELEASE: ${{ github.event.inputs.is_pre_release == 'true' }}
         GH_RELEASE_DRAFT: ${{ github.event.inputs.is_draft_release == 'true' }}
 
+  upload-artifact:
     - name: Create a file with Operator Version
       run: echo $VERSION > operator-version
 
-    - name: Upload version artifact
+    - name: Upload version artifact for helm artifact release flow
       uses: actions/upload-artifact@v4
       with:
         name: operator-version
