@@ -35,7 +35,7 @@ jobs:
       - name: Set VERSION env var if empty
         run: |
           if [ -z $VERSION ]; then
-            echo "VER=$(cat operator-version)" >> $GITHUB_ENV
+            echo "VERSION=$(cat operator-version)" >> $GITHUB_ENV
           fi
 
       - name: Publish Helm artifact to "gh-pages" branch
