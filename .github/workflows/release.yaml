@@ -45,6 +45,7 @@ jobs:
         GH_RELEASE_DRAFT: ${{ github.event.inputs.is_draft_release == 'true' }}
 
   job_producing_data:
+    needs: [release]
     runs-on: ubuntu-latest
 
     steps:
